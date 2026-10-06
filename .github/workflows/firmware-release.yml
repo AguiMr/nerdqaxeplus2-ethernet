@@ -9,9 +9,9 @@ name: Firmware release
 # esp-miner-NerdQAxe++.bin) so pre-existing big-screen installs keep updating,
 # and one shared www.bin (identical for both variants).
 #
-# Cut a release by pushing a tag named  <upstream-base>-bigscreen.<N>, e.g.:
-#   git tag v1.1.0.1-bigscreen.1      && git push origin v1.1.0.1-bigscreen.1   # Stable -> Latest
-#   git tag v1.1.1-alpha2-bigscreen.1 && git push origin v1.1.1-alpha2-bigscreen.1  # alpha -> Pre-release
+# Cut a release by pushing a tag named  <upstream-base>-ethernet.<N>, e.g.:
+#   git tag v1.1.0.1-ethernet.1      && git push origin v1.1.0.1-ethernet.1   # Stable -> Latest
+#   git tag v1.1.1-alpha3-ethernet.1 && git push origin v1.1.1-alpha3-ethernet.1  # alpha -> Pre-release
 # Latest vs Pre-release is decided automatically from the tag name (alpha/beta/rc
 # -> pre-release). Release notes name the upstream base and link to shufps's notes.
 # A manual run (workflow_dispatch) builds but does NOT publish.
@@ -58,10 +58,12 @@ jobs:
           case "$GITHUB_REF" in refs/tags/*) ;; *) TAG="dev-$(git rev-parse --short HEAD)";; esac
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-          # Upstream base = tag minus our "-bigscreen.N" fork suffix.
+          # Upstream base = tag minus our fork suffix ("-ethernet.N", or the
+          # historical "-bigscreen.N").
+          #   v1.1.1-alpha3-ethernet.1   -> v1.1.1-alpha3
           #   v1.1.0.1-bigscreen.1       -> v1.1.0.1
-          #   v1.1.1-alpha2-bigscreen.1  -> v1.1.1-alpha2
-          UPSTREAM_BASE="${TAG%-bigscreen.*}"
+          UPSTREAM_BASE="${TAG%-ethernet.*}"
+          UPSTREAM_BASE="${UPSTREAM_BASE%-bigscreen.*}"
           echo "upstream_base=$UPSTREAM_BASE" >> "$GITHUB_OUTPUT"
 
           # Channel label for the notes.
