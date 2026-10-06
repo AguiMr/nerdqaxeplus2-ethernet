@@ -24,6 +24,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Act as a real user (PAT), not the ephemeral GITHUB_TOKEN. Required so
+          # pushed sync branches + opened PRs actually trigger the Firmware build
+          # workflow (GITHUB_TOKEN-created PRs are blocked from triggering others),
+          # and so issue/PR creation isn't refused as "not accessible by integration".
+          token: ${{ secrets.SYNC_TOKEN }}
 
       - name: Configure git + add upstream
         run: |
@@ -51,14 +56,28 @@ jobs:
           if git merge --no-edit upstream/develop; then
             echo "status=clean" >> "$GITHUB_OUTPUT"
           else
-            git merge --abort
-            echo "status=conflict" >> "$GITHUB_OUTPUT"
+            # Auto-resolve the one *structural* conflict we expect on every sync:
+            # upstream still ships these CI workflows, which this fork intentionally
+            # deleted (replaced by firmware-build.yml / firmware-release.yml). Git
+            # can't auto-merge "deleted by us, modified by them", so re-drop them.
+            git rm -f --ignore-unmatch \
+              .github/workflows/build.yml \
+              .github/workflows/validate.yml >/dev/null 2>&1 || true
+            if [ -z "$(git diff --name-only --diff-filter=U)" ]; then
+              # those were the only conflicts -> finish the merge as clean
+              git commit --no-edit
+              echo "status=clean" >> "$GITHUB_OUTPUT"
+            else
+              # a genuine conflict remains -> leave it for a human
+              git merge --abort
+              echo "status=conflict" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
       - name: Open PR (clean merge)
         if: steps.m.outputs.status == 'clean'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
         run: |
           git push -u origin "${{ steps.m.outputs.branch }}"
           printf '%s\n' \
@@ -75,7 +94,7 @@ jobs:
       - name: Open issue (merge conflict)
         if: steps.m.outputs.status == 'conflict'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
         run: |
           TITLE="Upstream sync needs manual merge (+${{ steps.m.outputs.behind }} @ ${{ steps.m.outputs.up }})"
           # don't spam: skip if an open issue already names this upstream sha
