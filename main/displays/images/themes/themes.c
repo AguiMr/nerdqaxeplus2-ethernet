@@ -26,6 +26,19 @@
 #include "./NerdEko/ui_img_splashscreen2_png.c"
 #include "./NerdEko/ui_img_globalStats_png.c"
 
+// NerdQAxe++ (plus2) theme assets. Same LVGL symbol names in both sets, so only
+// one may be compiled — selected by the BIGSCREEN_480x320 flag (set via BIGSCREEN=1).
+//   BIGSCREEN build -> 480x320 (3.5") assets
+//   default build   -> upstream's original 320x170 assets
+#ifdef BIGSCREEN_480x320
+#include "./NerdQaxePlus2_480x320/ui_img_initscreen2_png.c"
+#include "./NerdQaxePlus2_480x320/ui_img_miningscreen2_png.c"
+#include "./NerdQaxePlus2_480x320/ui_img_portalscreen_png.c"
+#include "./NerdQaxePlus2_480x320/ui_img_btcscreen_png.c"
+#include "./NerdQaxePlus2_480x320/ui_img_settingsscreen_png.c"
+#include "./NerdQaxePlus2_480x320/ui_img_splashscreen2_png.c"
+#include "./NerdQaxePlus2_480x320/ui_img_globalStats_png.c"
+#else
 #include "./NerdQaxePlus2/ui_img_initscreen2_png.c"
 #include "./NerdQaxePlus2/ui_img_miningscreen2_png.c"
 #include "./NerdQaxePlus2/ui_img_portalscreen_png.c"
@@ -33,6 +46,7 @@
 #include "./NerdQaxePlus2/ui_img_settingsscreen_png.c"
 #include "./NerdQaxePlus2/ui_img_splashscreen2_png.c"
 #include "./NerdQaxePlus2/ui_img_globalStats_png.c"
+#endif
 
 #include "./NerdAxe/ui_img_initscreen2_png.c"
 #include "./NerdAxe/ui_img_miningscreen2_png.c"
