@@ -45,6 +45,7 @@ export interface ISystemInfo {
     smallCoreCount: number,
     ASICModel: eASICModel,
     deviceModel: string,
+    display?: string,
     stratumURL: string,
     stratumPort: number,
     stratumUser: string,

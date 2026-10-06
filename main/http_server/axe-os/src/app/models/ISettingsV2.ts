@@ -34,6 +34,7 @@ export interface ISettingsV2 {
     // Device identity
     asicModel: eASICModel;
     deviceModel: string;
+    display?: string;   // panel resolution ("320x170" / "480x320"); absent on older firmware
     version: string;
     otp: boolean;
     apActive: boolean;
