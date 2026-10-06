@@ -11,9 +11,18 @@ On top of upstream (tracking `shufps`'s `develop`), this fork adds:
 1. **Optional W5500 Ethernet** — add a wired connection if you want one, via upstream's own native `Board::hasEthernet()` / `NetworkManager` support (the community-standard SPI pinout is [below](#ethernet-w5500-wiring)). **It's entirely optional — with no Ethernet shield the firmware runs on WiFi, exactly like stock.**
 2. **Two screen builds from one source** — the stock **320×170** panel and the **480×320 (3.5")** panel the clones ship with (the big-screen support is ported from [brunneis/nerdqaxeplus2-3.5-inches](https://github.com/brunneis/nerdqaxeplus2-3.5-inches); upstream has said they won't support the 480×320 panel, so it's maintained here). Each release ships both; the in-app updater installs the one matching your screen automatically.
 
-<img src="miner.jpeg" alt="480x320 NerdQAxe++ clone running this firmware with the W5500 Ethernet shield" width="360">
+<table>
+<tr>
+<td align="center"><img src="miner.jpeg" alt="480x320 NerdQAxe++ clone running this firmware with the W5500 Ethernet shield" height="300"></td>
+<td align="center"><img src="miner-320x170.jpg" alt="320x170 NerdQAxe++ running this firmware on Ethernet" height="300"></td>
+</tr>
+<tr>
+<td align="center"><sub><b>480×320 (3.5")</b> clone + W5500 shield</sub></td>
+<td align="center"><sub><b>320×170 (1.9")</b> stock screen + W5500 shield</sub></td>
+</tr>
+</table>
 
-*This fork running on a 480x320 clone with the W5500 shield installed. The **chain-link icon** at the top of the screen (beside the IP) means it's on a wired Ethernet connection — it's absent when running over WiFi.*
+*Both running this fork with the W5500 shield installed. The **chain-link icon** at the top of the screen (beside the IP) means it's on a wired Ethernet connection — it's absent when running over WiFi.*
 
 Credits:
 - BitAxe devs on OSMU: @skot/ESP-Miner, @ben and @jhonny
