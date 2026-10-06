@@ -1,3 +1,14 @@
+# Panel-specific color-encoded shared images. These three were re-encoded
+# (big-endian + BGR, and for the icons a redrawn glyph) to render correctly on
+# the 480x320 panel. The 320x170 panel needs upstream's original RGB encoding,
+# so select the matching set by the BIGSCREEN flag. Same LVGL symbol names in
+# both, so only one may compile.
+if(DEFINED ENV{BIGSCREEN} AND "$ENV{BIGSCREEN}" STREQUAL "1")
+    set(PANEL_IMAGES_DIR "./displays/images/bigscreen")
+else()
+    set(PANEL_IMAGES_DIR "./displays/images")
+endif()
+
 idf_component_register(
 SRCS
     "main.cpp"
@@ -98,11 +109,11 @@ SRCS
     "./displays/images/ui_font_OpenSansBold45.c"
     "./displays/images/ui_font_vt323_21.c"
     "./displays/images/ui_font_vt323_35.c"
-    "./displays/images/ui_img_found_block_png.c"
+    "${PANEL_IMAGES_DIR}/ui_img_found_block_png.c"
     "./displays/images/ui_img_safe_png.c"
-    "./displays/images/ui_img_eth_png.c"
+    "${PANEL_IMAGES_DIR}/ui_img_eth_png.c"
     "./displays/images/ui_img_can_png.c"
-    "./displays/images/ui_img_wifi_png.c"
+    "${PANEL_IMAGES_DIR}/ui_img_wifi_png.c"
     "./displays/images/themes/themes.c"
     "./otp/otp.cpp"
     "./otp/qrcodegen.cpp"
