@@ -36,6 +36,19 @@ inline lv_coord_t scale_y(lv_coord_t value)
     return (lv_coord_t) (value * ((float) TDISPLAYS3_LCD_V_RES / 170.0f));
 }
 
+// Stat-label fonts. The 480x320 panel uses larger fonts so values stay legible
+// on the big screen; the 320x170 panel must keep upstream's original sizes or
+// the text overflows the layout. Gated by the BIGSCREEN_480x320 flag.
+#ifdef BIGSCREEN_480x320
+#define UI_FONT_STAT_L (&ui_font_OpenSansBold24)
+#define UI_FONT_STAT_M (&ui_font_OpenSansBold24)
+#define UI_FONT_IP     (&lv_font_montserrat_14)
+#else
+#define UI_FONT_STAT_L (&ui_font_OpenSansBold14)
+#define UI_FONT_STAT_M (&ui_font_OpenSansBold13)
+#define UI_FONT_IP     (&lv_font_montserrat_10)
+#endif
+
 static void apply_img_tint(lv_obj_t *img, lv_color_t color, lv_opa_t opa)
 {
     if (img) {
@@ -275,7 +288,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbVinput, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbVinput, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbVinput, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbVinput, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbVinput, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbVcore = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbVcore, LV_SIZE_CONTENT);  /// 1
@@ -287,7 +300,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbVcore, lv_color_hex(0xDEDEDE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbVcore, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbVcore, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbVcore, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbVcore, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbIntensidad = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbIntensidad, LV_SIZE_CONTENT);  /// 1
@@ -299,7 +312,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbIntensidad, lv_color_hex(0xDEDEDE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbIntensidad, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbIntensidad, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbIntensidad, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbIntensidad, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbPower = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbPower, LV_SIZE_CONTENT);  /// 1
@@ -311,7 +324,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbPower, lv_color_hex(0xDEDEDE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbPower, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbPower, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbPower, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbPower, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbEficiency = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbEficiency, LV_SIZE_CONTENT);  /// 1
@@ -335,7 +348,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbTemp, lv_color_hex(0xDEDADE), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbTemp, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbTemp, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbTemp, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbTemp, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbTime = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbTime, LV_SIZE_CONTENT);  /// 1
@@ -347,7 +360,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbTime, lv_color_hex(0xDEEE00), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbTime, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbTime, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbTime, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbTime, UI_FONT_STAT_M, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbIP = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbIP, LV_SIZE_CONTENT);  /// 1
@@ -359,7 +372,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbIP, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbIP, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbIP, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbIP, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbIP, UI_FONT_IP, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbBestDifficulty = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbBestDifficulty, LV_SIZE_CONTENT);  /// 1
@@ -371,7 +384,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbBestDifficulty, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbBestDifficulty, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbBestDifficulty, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbBestDifficulty, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbBestDifficulty, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbHashrate = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbHashrate, LV_SIZE_CONTENT);  /// 1
@@ -395,7 +408,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbRPM, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbRPM, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbRPM, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbRPM, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbRPM, UI_FONT_STAT_M, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lbASIC = lv_label_create(ui_MiningScreen);
     lv_obj_set_width(ui_lbASIC, LV_SIZE_CONTENT);  /// 1
@@ -407,7 +420,7 @@ void UI::miningScreenInit(void)
     lv_obj_set_style_text_color(ui_lbASIC, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lbASIC, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_lbASIC, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_lbASIC, &ui_font_OpenSansBold24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lbASIC, UI_FONT_STAT_L, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_add_event_cb(ui_MiningScreen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, m_display);
 
     ui_imgNet = lv_img_create(ui_MiningScreen);
