@@ -87,9 +87,15 @@ jobs:
             "" \
             "⚠️ Review the diff and wait for the green build, then merge, build, and **flash + test on the device** before trusting it." \
             > body.md
-          gh pr create --base main --head "${{ steps.m.outputs.branch }}" \
-            --title "Sync upstream shufps/develop (+${{ steps.m.outputs.behind }} commits)" \
-            --body-file body.md
+          # Use the REST API, not `gh pr create`: the latter calls the GraphQL
+          # createPullRequest mutation, which fine-grained PATs can't invoke
+          # (cli/cli#9732). REST /pulls works with the same token.
+          gh api --method POST "repos/${{ github.repository }}/pulls" \
+            -f title="Sync upstream shufps/develop (+${{ steps.m.outputs.behind }} commits)" \
+            -f head="${{ steps.m.outputs.branch }}" \
+            -f base=main \
+            -f body="$(cat body.md)" \
+            --jq .html_url
 
       - name: Open issue (merge conflict)
         if: steps.m.outputs.status == 'conflict'
@@ -97,8 +103,10 @@ jobs:
           GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
         run: |
           TITLE="Upstream sync needs manual merge (+${{ steps.m.outputs.behind }} @ ${{ steps.m.outputs.up }})"
-          # don't spam: skip if an open issue already names this upstream sha
-          if gh issue list --state open --search "${{ steps.m.outputs.up }} in:title" | grep -q .; then
+          # don't spam: skip if an open issue already names this upstream sha.
+          # REST (not `gh issue list`, which uses GraphQL) so fine-grained PATs work.
+          if gh api "repos/${{ github.repository }}/issues?state=open" --jq '.[].title' \
+               | grep -qF "${{ steps.m.outputs.up }}"; then
             echo "issue already open for this upstream sha"; exit 0; fi
           printf '%s\n' \
             "Upstream \`shufps/develop\` is ${{ steps.m.outputs.behind }} commits ahead (@ \`${{ steps.m.outputs.up }}\`), but the automatic merge conflicts and needs manual resolution." \
@@ -110,7 +118,11 @@ jobs:
             "idf.py build                 # verify it compiles" \
             '```' \
             > issue.md
-          gh issue create --title "$TITLE" --body-file issue.md
+          # REST /issues, not `gh issue create` (GraphQL createIssue) — same reason.
+          gh api --method POST "repos/${{ github.repository }}/issues" \
+            -f title="$TITLE" \
+            -f body="$(cat issue.md)" \
+            --jq .html_url
 
       - name: Summary
         run: echo "status=${{ steps.m.outputs.status }} behind=${{ steps.m.outputs.behind }} upstream=${{ steps.m.outputs.up }}"
