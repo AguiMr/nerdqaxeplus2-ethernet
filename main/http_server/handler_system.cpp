@@ -273,6 +273,11 @@ esp_err_t GET_system_info(httpd_req_t *req)
     doc["asicCount"]          = board->getAsicCount();
     doc["smallCoreCount"]     = (board->getAsics()) ? board->getAsics()->getSmallCoreCount() : 0;
     doc["deviceModel"]        = board->getDeviceModel();
+#ifdef BIGSCREEN_480x320
+    doc["display"]            = "480x320";
+#else
+    doc["display"]            = "320x170";
+#endif
     doc["hostip"]             = SYSTEM_MODULE.getIPAddress();
     doc["macAddr"]            = SYSTEM_MODULE.getMacAddress();
     doc["wifiRSSI"]           = SYSTEM_MODULE.get_wifi_rssi();
@@ -623,6 +628,11 @@ esp_err_t GET_system_asic(httpd_req_t *req)
     // Basisfelder
     doc["ASICModel"]        = board->getAsicModel();
     doc["deviceModel"]      = board->getDeviceModel();
+#ifdef BIGSCREEN_480x320
+    doc["display"]          = "480x320";
+#else
+    doc["display"]          = "320x170";
+#endif
     doc["asicCount"]        = board->getAsicCount();
     doc["defaultFrequency"] = board->getDefaultAsicFrequency();
     doc["defaultVoltage"]   = board->getDefaultAsicVoltageMillis();

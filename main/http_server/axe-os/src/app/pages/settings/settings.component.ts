@@ -36,6 +36,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   public expectedFileName: string = "";
   public expectedFactoryFilename: string = "";
+  // Panel resolution reported by the firmware ("320x170" / "480x320"); drives
+  // which per-variant release asset this device pulls. Empty on firmware that
+  // predates the field.
+  public display: string = "";
 
   public selectedFirmwareFile: File | null = null;
   public selectedWebsiteFile: File | null = null;
@@ -94,13 +98,18 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.currentWebVersion = this.getAppVersion();
         //this.deviceModel = "NerdQAxe++";
         this.deviceModel = info.deviceModel;
+        this.display = info.display ?? '';
         this.asicModel = info.asicModel;
         this.otpEnabled = !!info.otp;
 
         // Replace 'γ' with 'Gamma' if present and remove spaces
         // Keep special characters like + as GitHub releases use them
         this.normalizedModel = this.normalizeModel(this.deviceModel)
-        this.expectedFileName = `esp-miner-${this.normalizedModel}.bin`;
+        // Per-variant app name includes the panel resolution so each screen size
+        // pulls its own build; fall back to the legacy name on older firmware.
+        this.expectedFileName = this.display
+          ? `esp-miner-${this.normalizedModel}-${this.display}.bin`
+          : `esp-miner-${this.normalizedModel}.bin`;
 
         console.log('Device model from API:', this.deviceModel);
         console.log('Expected filename:', this.expectedFileName);
@@ -118,7 +127,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.githubUpdateService.getReleases(include).pipe(
           map(list =>
             (list ?? []).filter(r =>
-              r.assets?.some(a => a.name === this.buildFactoryNameFor(r))
+              r.assets?.some(a => this.factoryNamesFor(r).includes(a.name))
             )
           )
         )
@@ -323,7 +332,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.expectedFactoryFilename = '';
       return;
     }
-    this.expectedFactoryFilename = this.buildFactoryNameFor(this.selectedRelease);
+    this.expectedFactoryFilename = this.resolveFactoryFilename(this.selectedRelease);
 
     // Refresh changelog if panel is open
     if (this.showChangelog) {
@@ -500,9 +509,32 @@ export class SettingsComponent implements OnInit, OnDestroy {
   // settings.component.ts
   public trackRelease = (_: number, r: GithubRelease) => r.id;
 
-  // Helper to build expected factory filename for a given release
+  // Preferred factory filename for a release: includes the panel resolution so
+  // each screen-size variant pulls its own build. Falls back to the legacy
+  // (un-sized) name on firmware that doesn't report a display.
   private buildFactoryNameFor(release: GithubRelease): string {
-    return `esp-miner-factory-${this.normalizedModel}-${release.tag_name}.bin`;
+    return this.display
+      ? `esp-miner-factory-${this.normalizedModel}-${this.display}-${release.tag_name}.bin`
+      : `esp-miner-factory-${this.normalizedModel}-${release.tag_name}.bin`;
+  }
+
+  // All factory names this device will accept for a release, most-preferred
+  // first. The 480x320 (big screen) build also accepts the legacy un-sized name,
+  // because existing big-screen installs shipped under it; the 320x170 build
+  // never does, so a normal-screen device can't grab a big-screen asset.
+  private factoryNamesFor(release: GithubRelease): string[] {
+    const names = [this.buildFactoryNameFor(release)];
+    if (this.display === '480x320') {
+      names.push(`esp-miner-factory-${this.normalizedModel}-${release.tag_name}.bin`);
+    }
+    return names;
+  }
+
+  // The accepted factory name that actually exists in the release (prefer the
+  // sized name, else the legacy fallback), or the preferred name if none match.
+  private resolveFactoryFilename(release: GithubRelease): string {
+    const names = this.factoryNamesFor(release);
+    return names.find(n => release.assets?.some(a => a.name === n)) ?? names[0];
   }
 
   public getAppVersion() {

@@ -38,6 +38,11 @@ esp_err_t GET_V2_settings(httpd_req_t *req)
     // --- device identity ---
     doc["asicModel"]   = board->getAsicModel();
     doc["deviceModel"] = board->getDeviceModel();
+#ifdef BIGSCREEN_480x320
+    doc["display"]     = "480x320";
+#else
+    doc["display"]     = "320x170";
+#endif
     doc["version"]     = esp_app_get_description()->version;
     doc["otp"]         = Config::isOTPEnabled();
     doc["apActive"]    = NETWORK.isApActive();
