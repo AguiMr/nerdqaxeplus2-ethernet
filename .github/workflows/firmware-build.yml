@@ -2,7 +2,8 @@ name: Firmware build
 
 # Compile-checks the firmware so pull requests (including the automated
 # upstream-sync PRs) get a green/red before anyone merges or flashes.
-# Builds the NerdQAxePlus2 / 480x320 target only — the config this fork ships.
+# Builds BOTH screen variants this fork ships: 480x320 (BIGSCREEN=1) and the
+# stock 320x170 (BIGSCREEN=0).
 #
 # The firmware bundles the Angular web UI (axe-os) into www.bin, and dist/ is
 # gitignored, so the web UI must be built (npm) before idf.py build.
@@ -14,12 +15,17 @@ on:
 
 jobs:
   build:
-    name: idf.py build (NERDQAXEPLUS2, BIGSCREEN)
+    name: idf.py build (NERDQAXEPLUS2, ${{ matrix.name }})
     runs-on: ubuntu-latest
-    # Pinned to 5.3.3 to match the toolchain this fork actually builds/flashes
-    # with (docker/ esp-idf-builder). Newer 5.3.x (e.g. 5.3.6) uses more IRAM
-    # and the 480x320 build overflows IRAM by a few KB — see README / tracking.
+    # Stable line stays on ESP-IDF 5.3.3 (the v1.1.0.1 base toolchain); the
+    # main/alpha line is on 5.3.6. Both screen variants link here.
     container: espressif/idf:v5.3.3
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "480x320", bigscreen: "1" }
+          - { name: "320x170", bigscreen: "0" }
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
@@ -37,11 +43,11 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build firmware
+      - name: Build firmware (${{ matrix.name }})
         shell: bash
         run: |
           git config --global --add safe.directory '*'   # idf.py reads git version
           . "$IDF_PATH/export.sh"
-          export BOARD=NERDQAXEPLUS2 BIGSCREEN=1
+          export BOARD=NERDQAXEPLUS2 BIGSCREEN=${{ matrix.bigscreen }}
           idf.py set-target esp32s3
           idf.py build

@@ -1,10 +1,13 @@
 name: Firmware release
 
-# Builds the firmware and publishes a GitHub Release whose assets match what
-# the in-app "Update via GitHub" expects (and the manual web-UI upload):
-#   - esp-miner-factory-NerdQAxe++-<tag>.bin  (full 0x0 image; in-app updater + USB)
-#   - esp-miner-NerdQAxe++.bin                (app only; web-UI firmware upload / OTA)
-#   - www.bin                                 (web UI; web-UI website upload / OTA-www)
+# Builds BOTH screen variants and publishes a GitHub Release whose assets match
+# what the in-app "Update via GitHub" expects (and the manual web-UI upload).
+# Per variant <size> in {480x320, 320x170}:
+#   - esp-miner-factory-NerdQAxe++-<size>-<tag>.bin  (full 0x0 image; updater + USB)
+#   - esp-miner-NerdQAxe++-<size>.bin                (app only; web-UI upload / OTA)
+# Plus un-sized 480x320 aliases (esp-miner-factory-NerdQAxe++-<tag>.bin and
+# esp-miner-NerdQAxe++.bin) so pre-existing big-screen installs keep updating,
+# and one shared www.bin (identical for both variants).
 #
 # Cut a release by pushing a tag named  <upstream-base>-bigscreen.<N>, e.g.:
 #   git tag v1.1.0.1-bigscreen.1      && git push origin v1.1.0.1-bigscreen.1   # Stable -> Latest
@@ -44,21 +47,12 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build firmware
-        shell: bash
-        run: |
-          git config --global --add safe.directory '*'
-          . "$IDF_PATH/export.sh"
-          export BOARD=NERDQAXEPLUS2 BIGSCREEN=1
-          idf.py set-target esp32s3
-          idf.py build
-
-      - name: Package release binaries
+      - name: Build & package both screen variants
         id: pkg
         shell: bash
         run: |
-          . "$IDF_PATH/export.sh"
           git config --global --add safe.directory '*'
+          . "$IDF_PATH/export.sh"
           # Tag on a tag push; on manual runs fall back to a dev label (won't publish).
           TAG="${GITHUB_REF_NAME}"
           case "$GITHUB_REF" in refs/tags/*) ;; *) TAG="dev-$(git rev-parse --short HEAD)";; esac
@@ -76,19 +70,40 @@ jobs:
             *)                   echo "channel=Stable" >> "$GITHUB_OUTPUT" ;;
           esac
 
-          FACTORY="esp-miner-factory-NerdQAxe++-${TAG}.bin"
-          esptool.py --chip esp32s3 merge_bin \
-            --flash_mode dio --flash_size 16MB --flash_freq 80m \
-            0x0      build/bootloader/bootloader.bin \
-            0x8000   build/partition_table/partition-table.bin \
-            0x10000  build/esp-miner.bin \
-            0x4a0000 build/www.bin \
-            0xfc0000 build/ota_data_initial.bin \
-            -o "$FACTORY"
+          # Build one variant and emit its factory + app-only binaries, named with
+          # the panel resolution so each screen size pulls its own build.
+          build_variant() {
+            local bigscreen="$1" disp="$2"
+            rm -rf build sdkconfig                      # force reconfigure for the BIGSCREEN flag
+            export BOARD=NERDQAXEPLUS2 BIGSCREEN="$bigscreen"
+            idf.py set-target esp32s3
+            idf.py build
+            esptool.py --chip esp32s3 merge_bin \
+              --flash_mode dio --flash_size 16MB --flash_freq 80m \
+              0x0      build/bootloader/bootloader.bin \
+              0x8000   build/partition_table/partition-table.bin \
+              0x10000  build/esp-miner.bin \
+              0x4a0000 build/www.bin \
+              0xfc0000 build/ota_data_initial.bin \
+              -o "esp-miner-factory-NerdQAxe++-${disp}-${TAG}.bin"
+            cp build/esp-miner.bin "esp-miner-NerdQAxe++-${disp}.bin"
+          }
 
-          cp build/esp-miner.bin "esp-miner-NerdQAxe++.bin"   # app-only (OTA / manual firmware upload)
-          cp build/www.bin       "www.bin"                    # web UI (OTA-www / manual website upload)
-          ls -la "$FACTORY" "esp-miner-NerdQAxe++.bin" www.bin
+          # 480x320 (big screen) first; www.bin is identical for both variants
+          # (the web UI carries no display assets), so grab it here and share it.
+          build_variant 1 480x320
+          cp build/www.bin www.bin
+
+          # Transition aliases: existing big-screen installs were shipped under the
+          # un-sized names, so also publish the 480x320 build under them (same bytes)
+          # until those devices have updated to a display-aware build.
+          cp "esp-miner-factory-NerdQAxe++-480x320-${TAG}.bin" "esp-miner-factory-NerdQAxe++-${TAG}.bin"
+          cp "esp-miner-NerdQAxe++-480x320.bin"                "esp-miner-NerdQAxe++.bin"
+
+          # 320x170 (standard screen)
+          build_variant 0 320x170
+
+          ls -la esp-miner-factory-* esp-miner-NerdQAxe++*.bin www.bin
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -104,23 +119,38 @@ jobs:
           # below our own notes.
           generate_release_notes: true
           files: |
+            esp-miner-factory-NerdQAxe++-480x320-${{ steps.pkg.outputs.tag }}.bin
+            esp-miner-factory-NerdQAxe++-320x170-${{ steps.pkg.outputs.tag }}.bin
             esp-miner-factory-NerdQAxe++-${{ steps.pkg.outputs.tag }}.bin
+            esp-miner-NerdQAxe++-480x320.bin
+            esp-miner-NerdQAxe++-320x170.bin
             esp-miner-NerdQAxe++.bin
             www.bin
           body: |
             **Channel:** ${{ steps.pkg.outputs.channel }}
             **Upstream base:** [`${{ steps.pkg.outputs.upstream_base }}`](https://github.com/shufps/ESP-Miner-NerdQAxePlus/releases/tag/${{ steps.pkg.outputs.upstream_base }}) — see upstream's own notes for everything in the base firmware.
 
-            Clean, auditable firmware for **480x320 (3.5") NerdQAxe++ clones**: the
-            upstream `shufps/ESP-Miner-NerdQAxePlus` release above, plus this fork's
-            additions.
+            Clean, auditable W5500-Ethernet firmware for the **NerdQAxe++**, in two
+            builds — one per screen. It's the upstream `shufps/ESP-Miner-NerdQAxePlus`
+            release above, plus this fork's additions.
+
+            ### Pick your screen
+            | Your screen | In-app updater picks it automatically | Manual / USB file |
+            |---|---|---|
+            | **480×320** (3.5") | yes | `…-480x320-…` |
+            | **320×170** (1.9", stock) | yes | `…-320x170-…` |
+
+            The in-app updater reads the panel size from the device, so it installs the
+            right one on its own. (The un-sized `esp-miner-factory-NerdQAxe++-<tag>.bin`
+            / `esp-miner-NerdQAxe++.bin` are **480×320 aliases** kept so older big-screen
+            installs keep updating — new installs should use the sized files.)
 
             ### What this fork adds on top of the upstream base
-            - **480x320 (3.5") display support** (`BIGSCREEN` build, ported from brunneis) — upstream doesn't support this panel.
+            - **Two screen variants from one source:** upstream's **320×170** panel plus **480×320 (3.5")** support (`BIGSCREEN` build, ported from brunneis).
             - **Optional W5500 Ethernet** via upstream's native `NetworkManager` (4 wires: MOSI 12 / MISO 16 / SCLK 2 / CS 21). Optional — the firmware runs on WiFi with no shield attached.
-            - Enlarged app partitions + shrunk `www` to fit the larger theme assets (**first flash must be over USB**, not OTA).
+            - Enlarged app partitions to fit the theme assets (**first flash must be over USB**, not OTA).
 
             ### Install
-            - **In-app (easiest):** on the miner's web UI → Settings → **Update via GitHub** → pick this release.
-            - **Manual web-UI upload:** upload `esp-miner-NerdQAxe++.bin` (firmware) and `www.bin` (website).
-            - **First-time / USB:** flash `esp-miner-factory-NerdQAxe++-${{ steps.pkg.outputs.tag }}.bin` at `0x0` with esptool/bitaxetool.
+            - **In-app (easiest):** on the miner's web UI → Settings → **Update via GitHub** → pick this release. It auto-selects the build for your screen.
+            - **Manual web-UI upload:** upload the `esp-miner-NerdQAxe++-<size>.bin` matching your screen (firmware) and `www.bin` (website).
+            - **First-time / USB:** flash `esp-miner-factory-NerdQAxe++-<size>-${{ steps.pkg.outputs.tag }}.bin` at `0x0` with esptool/bitaxetool.
