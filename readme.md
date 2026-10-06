@@ -1,6 +1,6 @@
-# Clean firmware for 480x320 NerdQAxe++ clones
+# Clean W5500-Ethernet firmware for the NerdQAxe++ (320×170 and 480×320)
 
-Open, auditable firmware for the **480x320 (3.5") NerdQAxe++ clones** sold on AliExpress (by sellers such as YYSlupping, among others). These boards ship with a **preinstalled binary firmware whose source isn't published**, so there's no way to see what it does with your pool credentials, payout address, or hashrate. This repo lets you replace it with a clean build compiled from the open [`shufps/ESP-Miner-NerdQAxePlus`](https://github.com/shufps/ESP-Miner-NerdQAxePlus) source — the same firmware the rest of the NerdQAxe community runs — so you know exactly what's on your miner.
+Open, auditable firmware for the **NerdQAxe++**, with optional **W5500 Ethernet** and a build for each screen: the **stock 1.9" 320×170** panel and the **480×320 (3.5")** panel on the clones sold on AliExpress (sellers such as YYSlupping, among others). Those 480×320 clones ship with a **preinstalled binary firmware whose source isn't published**, so there's no way to see what it does with your pool credentials, payout address, or hashrate. This repo lets you replace it — on either screen — with a clean build compiled from the open [`shufps/ESP-Miner-NerdQAxePlus`](https://github.com/shufps/ESP-Miner-NerdQAxePlus) source, the same firmware the rest of the NerdQAxe community runs, so you know exactly what's on your miner.
 
 | Supported Targets | ESP32-S3           |
 | ----------------- | ------------------ |
@@ -8,8 +8,8 @@ Open, auditable firmware for the **480x320 (3.5") NerdQAxe++ clones** sold on Al
 
 On top of upstream (tracking `shufps`'s `develop`), this fork adds:
 
-1. **480x320 (3.5") display support** — the larger panel these clones ship with, which upstream doesn't support (ported from [brunneis/nerdqaxeplus2-3.5-inches](https://github.com/brunneis/nerdqaxeplus2-3.5-inches); upstream has said they won't support this panel, so it's maintained here).
-2. **Optional W5500 Ethernet** — add a wired connection if you want one, via upstream's own native `Board::hasEthernet()` / `NetworkManager` support (the community-standard SPI pinout is [below](#ethernet-w5500-wiring)). **It's entirely optional — with no Ethernet shield the firmware runs on WiFi, exactly like stock.**
+1. **Optional W5500 Ethernet** — add a wired connection if you want one, via upstream's own native `Board::hasEthernet()` / `NetworkManager` support (the community-standard SPI pinout is [below](#ethernet-w5500-wiring)). **It's entirely optional — with no Ethernet shield the firmware runs on WiFi, exactly like stock.**
+2. **Two screen builds from one source** — the stock **320×170** panel and the **480×320 (3.5")** panel the clones ship with (the big-screen support is ported from [brunneis/nerdqaxeplus2-3.5-inches](https://github.com/brunneis/nerdqaxeplus2-3.5-inches); upstream has said they won't support the 480×320 panel, so it's maintained here). Each release ships both; the in-app updater installs the one matching your screen automatically.
 
 <img src="miner.jpeg" alt="480x320 NerdQAxe++ clone running this firmware with the W5500 Ethernet shield" width="360">
 
@@ -22,9 +22,9 @@ Credits:
 
 ### Status
 
-- ✅ Builds clean for `BOARD=NERDQAXEPLUS2`, target `esp32s3`, with `BIGSCREEN=1` (CI compile-checks every change).
-- ✅ **`main/displays/ui.cpp` adapted for the 480x320 canvas.** The SquareLine-Studio layout (written for the 320x170 screen) was scaled to fill the larger panel and verified on a real device — the mining screen, fonts, network/status icons, and the block-found overlay all render correctly.
-- ✅ **Ethernet is hardware-verified** on a NerdQAxePlus2 with a W5500 shield: the wiring below is confirmed working and the board runs on Ethernet.
+- ✅ Builds clean for `BOARD=NERDQAXEPLUS2`, target `esp32s3`, for **both screens** — `BIGSCREEN=1` (480×320) and `BIGSCREEN=0` (320×170). CI compile-checks both on every change.
+- ✅ **Both screens verified on real hardware.** 480×320: the SquareLine-Studio layout (authored for 320×170) is scaled to fill the larger panel. 320×170: renders at upstream's native layout. Mining screen, fonts, network/status icons, and the block-found overlay all render correctly on each (panel-specific color encoding and fonts are selected per build).
+- ✅ **Ethernet is hardware-verified** on a NerdQAxe++ with a W5500 shield: the wiring below is confirmed working and the board runs on Ethernet.
 
 ### Ethernet (W5500) wiring
 
@@ -54,37 +54,40 @@ cd docker && ./build_docker.sh && cd ..
 git submodule update --init --recursive   # if you didn't clone with --recursive
 ```
 
-Then build — the two fork-specific bits are `BOARD=NERDQAXEPLUS2` and `BIGSCREEN=1`:
+Then build — the two fork-specific bits are `BOARD=NERDQAXEPLUS2` and `BIGSCREEN`, which picks the screen:
 
 ```bash
 export BOARD="NERDQAXEPLUS2"
-export BIGSCREEN=1          # enables the 480x320 display code
+export BIGSCREEN=1          # 1 = 480x320 (3.5") panel;  0 = stock 320x170 panel
 ./docker/idf.sh set-target esp32s3
 ./docker/idf.sh build
 ```
 
-That produces `build/esp-miner.bin` (app) and `build/www.bin` (web UI).
+That produces `build/esp-miner.bin` (app) and `build/www.bin` (web UI). Switching `BIGSCREEN` needs a clean reconfigure, so `rm -rf build sdkconfig` between the two.
 
 ## Installing & updating
 
-Every [Release](https://github.com/AguiMr/nerdqaxe-bigscreen/releases) attaches ready-to-flash binaries (or build your own — see above):
-- `esp-miner-factory-NerdQAxe++-<ver>.bin` — full image, for a first-time USB flash
-- `esp-miner-NerdQAxe++.bin` + `www.bin` — app + web UI, for in-app / OTA updates
+Every [Release](https://github.com/AguiMr/nerdqaxeplus2-ethernet/releases) attaches ready-to-flash binaries for **both screens** (or build your own — see above). Pick the files for your panel:
 
-**First install (coming from the stock/unknown firmware): USB serial.** The partition table differs from a stock NerdQAxePlus2 (app partitions enlarged, `www` shrunk for the 480x320 theme assets — see `partitions.csv`), so the first flash can't be done over the air. Hold the `boot` button to enter bootloader mode, then flash the factory image at `0x0`:
+| Your screen | First-time USB flash | In-app / OTA update |
+|---|---|---|
+| **320×170** (1.9", stock) | `esp-miner-factory-NerdQAxe++-320x170-<ver>.bin` | `esp-miner-NerdQAxe++-320x170.bin` + `www.bin` |
+| **480×320** (3.5") | `esp-miner-factory-NerdQAxe++-480x320-<ver>.bin` | `esp-miner-NerdQAxe++-480x320.bin` + `www.bin` |
+
+**First install (coming from the stock/unknown firmware): USB serial.** The partition table differs from a stock NerdQAxePlus2 (app partitions enlarged for the theme assets — see `partitions.csv`), so the first flash can't be done over the air. Hold the `boot` button to enter bootloader mode, then flash the factory image for your screen at `0x0`:
 
 ```bash
-esptool.py --chip esp32s3 -p /dev/ttyACM0 write_flash 0x0 esp-miner-factory-NerdQAxe++-<ver>.bin
-# or:  ./docker/bitaxetool.sh --firmware esp-miner-factory-NerdQAxe++-<ver>.bin -p /dev/ttyACM0
+esptool.py --chip esp32s3 -p /dev/ttyACM0 write_flash 0x0 esp-miner-factory-NerdQAxe++-<size>-<ver>.bin
+# or:  ./docker/bitaxetool.sh --firmware esp-miner-factory-NerdQAxe++-<size>-<ver>.bin -p /dev/ttyACM0
 ```
 
 (From a self-built tree instead: `idf.py -p /dev/ttyACM0 flash` inside `./docker/idf-shell.sh`, or `./merge_bin.sh nerdqaxe+.bin` to produce your own factory image.)
 
 **Updating once you're already on this firmware — no USB needed:**
-- **In-app (easiest):** web UI → Settings → **Update via GitHub** → pick the latest release. Preserves your settings (pool, overclock) in NVS.
-- **Manual upload:** web UI → firmware upload (`esp-miner-NerdQAxe++.bin`) and website upload (`www.bin`).
+- **In-app (easiest):** web UI → Settings → **Update via GitHub** → pick the latest release. It detects your screen and installs the matching build automatically, preserving your settings (pool, overclock) in NVS.
+- **Manual upload:** web UI → firmware upload (the `esp-miner-NerdQAxe++-<size>.bin` for your screen) and website upload (`www.bin`).
 
-> Not on shufps's Webflasher — that only carries upstream builds, not the 480x320 one. Use this repo's own releases.
+> Not on shufps's Webflasher — that only carries upstream builds, not these. Use this repo's own releases.
 
 ## Upstream features
 
